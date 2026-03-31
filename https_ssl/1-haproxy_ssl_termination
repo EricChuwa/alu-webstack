@@ -1,0 +1,35 @@
+global
+    log /dev/log local0
+    log /dev/log local1 notice
+    chroot /var/lib/haproxy
+    stats socket /run/haproxy/admin.sock mode 660 level admin expose-fd listeners
+    stats timeout 30s
+    user haproxy
+    group haproxy
+    daemon
+    tune.ssl.default-dh-param 2048
+
+defaults
+    log global
+    mode http
+    option httplog
+    option dontlognull
+    timeout connect 5000
+    timeout client 50000
+    timeout server 50000
+
+frontend www_https
+    bind *:443 ssl crt /etc/ssl/private/www.crimzonpeak.tech.pem
+    default_backend web_servers
+
+frontend www_http
+    bind *:80
+    redirect scheme https code 301 if !{ ssl_fc }
+
+backend web_servers
+    balance roundrobin
+    option http-server-close
+    option forwardfor
+    server web-01 54.173.55.181:80 check
+    server web-02 54.211.203.174:80 check
+
